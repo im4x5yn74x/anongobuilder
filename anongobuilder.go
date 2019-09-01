@@ -13,20 +13,21 @@ import (
 	"unsafe"
 )
 
-var src = rand.NewSource(time.Now().UnixNano())
 var infile, osval, archval, outfile, randfilepath string
+var src = rand.NewSource(time.Now().UTC().UnixNano())
+
 var installvar bool
 
 const (
 	goos        = "GOOS"
 	goarch      = "GOARCH"
 	charBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	charIdxBits = 6
-	charIdxMask = 1<<charIdxBits - 1
-	charIdxMax  = 63 / charIdxBits
+	charIdxBits = 6                  // 6 bits to represent a letter index
+	charIdxMask = 1<<charIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	charIdxMax  = 63 / charIdxBits   // # of letter indices fitting in 63 bits
 )
 
-func randstrgen(n int) string { // https://play.golang.org/p/KcuJ_2c_NDj
+func randstrgen(n int) string { // NOW with more R@ND0M! Credit goes to Go Playground found here: https://play.golang.org/p/KcuJ_2c_NDj
 	a := make([]byte, n)
 	for j, cache, remain := n-1, src.Int63(), charIdxMax; j >= 0; {
 		if remain == 0 {
@@ -42,6 +43,10 @@ func randstrgen(n int) string { // https://play.golang.org/p/KcuJ_2c_NDj
 	return *(*string)(unsafe.Pointer(&a))
 }
 
+func randInt(min, max int) int {
+	return min + rand.Intn(max-min)
+}
+
 func checkInSlice(str string, list []string) bool {
 	for _, v := range list {
 		if v == str {
@@ -53,9 +58,7 @@ func checkInSlice(str string, list []string) bool {
 
 func anongobuild() {
 	ofile := outfile
-	_ = randstrgen(rand.Intn(100))         // Used to generate first random value (usually a single character)
-	_ = ""                                 // and set it to nothing
-	randname := randstrgen(rand.Intn(100)) // Feel free to adjust the 'Intn()' value accordingly
+	randname := randstrgen(randInt(rand.Intn(len(charBytes)), randInt(43, 252)))
 	if runtime.GOOS == "windows" {
 		randfilepath = "C:\\Users\\Public\\" + randname + ".go" // Implemented to mask source path within binary artifacts.
 	} else {
@@ -148,6 +151,7 @@ func cli() {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: ./anongobuilder -h to show the help menu.")
 		os.Exit(1)
