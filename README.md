@@ -15,6 +15,8 @@ Build and Install the Anongobuilder binary.<br>
         Architecture: 386, amd64, amd64p32, arm, arm64, ppc64, ppc64le, mips, mipsle, mips64, mips64le, s390x, sparc64
   -i string
         Input filename: <whatever file you aim to compile.>
+  -install
+        Install your compiled binary.
   -o string
         Output filename: <anything goes>
   -p string
@@ -24,4 +26,9 @@ If you're feeling froggy, you can even compile Anongobuilder with itself!<br>
 <code>cd $GOPATH/src/github.com/im4x5yn74x/anongobuilder</code><br>
 <code>go run anongobuilder.go -a amd64 -p linux -i anongobuilder.go -o anongobuilder</code><br>
 OR:<br>
-<code>go run anongobuilder.go -a 386 -p windows -i anongobuilder.go -o anongobuilder</code>
+<code>go run anongobuilder.go -a 386 -p windows -i anongobuilder.go -o anongobuilder</code><br>
+You can even install any binary you compile to your GOBIN path.<br>
+<code>go run anongobuilder.go -a amd64 -p linux -i anongobuilder.go -o anongobuilder -install</code><br>
+Now build and install your own Golang files.<br>
+Build: <code>anongobuilder -a arm -p linux -i main.go -o andhammer</code><br>
+Install: <code>anongobuilder -a arm -p linux -i main.go -o andhammer -install</code><br>
