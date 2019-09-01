@@ -14,6 +14,8 @@ import (
 )
 
 var src = rand.NewSource(time.Now().UnixNano())
+var infile, osval, archval, outfile, randfilepath string
+var installvar bool
 
 const (
 	goos        = "GOOS"
@@ -49,8 +51,6 @@ func checkInSlice(str string, list []string) bool {
 	return false
 }
 
-var infile, osval, archval, outfile, randfilepath string
-
 func anongobuild() {
 	ofile := outfile
 	_ = randstrgen(rand.Intn(100))         // Used to generate first random value (usually a single character)
@@ -75,28 +75,58 @@ func anongobuild() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	govar := "go"
-	args := []string{"build", "-ldflags=-s -w", randfilepath}
-	b := exec.Command(govar, args...)
-	b.Env = os.Environ()
-	b.Env = append(b.Env, fmt.Sprintf("%s=%s", goos, osval))
-	b.Env = append(b.Env, fmt.Sprintf("%s=%s", goarch, archval))
-	out, err := b.CombinedOutput()
-	if err != nil {
-		fmt.Println("Could not compile")
-		os.Exit(0)
-	}
-	fmt.Printf("%s", out)
-	fmt.Println("Successfully compiled")
-	pwd, err := os.Getwd()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	if osval == "windows" {
-		os.Rename(pwd+"/"+randname+".exe", ofile+".exe")
+	if installvar {
+		gobin := os.Getenv("GOBIN")
+		if gobin == "" {
+			fmt.Println("Installation failed.")
+			fmt.Println("GOBIN has null value within your environment.")
+			fmt.Println("Please set a filepath value:")
+			fmt.Println("Windows: set GOBIN=$GOPATH/bin")
+			fmt.Println("Linux: export GOBIN=$GOPATH/bin")
+			os.Exit(1)
+		}
+		goinstall := "go"
+		args := []string{"install", "-ldflags=-s -w", randfilepath}
+		b := exec.Command(goinstall, args...)
+		b.Env = os.Environ()
+		b.Env = append(b.Env, fmt.Sprintf("%s=%s", goos, osval))
+		b.Env = append(b.Env, fmt.Sprintf("%s=%s", goarch, archval))
+		out, err := b.CombinedOutput()
+		if err != nil {
+			fmt.Println("Could not compile")
+			os.Exit(0)
+		}
+		fmt.Printf("%s", out)
+		fmt.Println("Successfully compiled")
+		if osval == "windows" {
+			os.Rename(gobin+"/"+randname+".exe", gobin+"/"+ofile+".exe")
+		} else {
+			os.Rename(gobin+"/"+randname, gobin+"/"+ofile)
+		}
 	} else {
-		os.Rename(pwd+"/"+randname, ofile)
+		govar := "go"
+		args := []string{"build", "-ldflags=-s -w", randfilepath}
+		b := exec.Command(govar, args...)
+		b.Env = os.Environ()
+		b.Env = append(b.Env, fmt.Sprintf("%s=%s", goos, osval))
+		b.Env = append(b.Env, fmt.Sprintf("%s=%s", goarch, archval))
+		out, err := b.CombinedOutput()
+		if err != nil {
+			fmt.Println("Could not compile")
+			os.Exit(0)
+		}
+		fmt.Printf("%s", out)
+		fmt.Println("Successfully compiled")
+		pwd, err := os.Getwd()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		if osval == "windows" {
+			os.Rename(pwd+"/"+randname+".exe", ofile+".exe")
+		} else {
+			os.Rename(pwd+"/"+randname, ofile)
+		}
 	}
 	err = os.Remove(fmt.Sprintf("%s", randfilepath))
 	if err != nil {
@@ -109,7 +139,11 @@ func cli() {
 	flag.StringVar(&archval, "a", "", "Architecture: 386, amd64, amd64p32, arm, arm64, ppc64, ppc64le, mips, mipsle, mips64, mips64le, s390x, sparc64")
 	flag.StringVar(&infile, "i", "", "Input filename: <whatever file you aim to compile.>")
 	flag.StringVar(&outfile, "o", "", "Output filename: <anything goes>")
+	flag.BoolVar(&installvar, "install", false, "Install your compiled binary.")
 	flag.Parse()
+	if installvar == true {
+		fmt.Println("Installing...")
+	}
 	anongobuild()
 }
 
